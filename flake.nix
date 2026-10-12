@@ -34,7 +34,7 @@
                 remotes = [
                   {
                     name = "origin";
-                    url = "git@github.com:grendel71/nix-deployments.git";
+                    url = "https://github.com/grendel71/nix-deployments.git";
                     branches.main.name = "main";
                   }
                 ];
