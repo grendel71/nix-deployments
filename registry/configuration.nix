@@ -48,6 +48,13 @@
       PasswordAuthentication = false;
     };
   };
+  services.dockerRegistry = {
+    enable = true;
+    listenAddress = "0.0.0.0";
+    port = 5000;
+    openFirewall = true;
+    storagePath = "/var/lib/docker-registry";
+  };
 
   security.sudo.wheelNeedsPassword = false;
 
