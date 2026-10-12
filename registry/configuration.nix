@@ -49,13 +49,12 @@
     };
   };
 
-  # blau2 has no password, so sudo must not ask for one.
   security.sudo.wheelNeedsPassword = false;
 
-  users.users.blau2 = {
+  users.users.blau = {
     isNormalUser = true;
-    home = "/home/blau2";
-    description = "blau2 admin";
+    home = "/home/blau";
+    description = "blau admin";
     extraGroups = [
       "wheel"
       "networkmanager"
