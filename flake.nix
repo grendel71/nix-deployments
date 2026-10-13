@@ -1,5 +1,5 @@
 {
-  inputs.nixpkgs.url = "github:nixos/nixpkgs?ref=25.11";
+  inputs.nixpkgs.url = "github:nixos/nixpkgs?ref=26.05";
   inputs.disko.url = "github:nix-community/disko";
   inputs.disko.inputs.nixpkgs.follows = "nixpkgs";
   inputs.comin.url = "github:nlewo/comin";
@@ -14,7 +14,63 @@
       sops-nix,
       ...
     }:
-    {
+    let
+      system = "x86_64-linux";
+      pkgs = nixpkgs.legacyPackages.${system};
+
+      nixos = nixpkgs.lib.nixosSystem {
+        inherit system;
+        modules = [ ./image/configuration.nix ./image/qcow.nix ];
+      };
+      qcow = nixos.config.system.build.qcow2;
+
+      containerDisk = pkgs.dockerTools.buildLayeredImage {
+        name = "nixos-dev";
+        tag = "latest";
+        # The qcow2 embeds store paths. Without this, the whole NixOS
+        # closure is copied into the image as extra layers.
+        includeStorePaths = false;
+        enableFakechroot = true;
+        fakeRootCommands = ''
+          mkdir -p /disk
+          cp ${qcow}/nixos.qcow2 /disk/nixos.qcow2
+          chown -R 107:107 /disk
+          chmod 0644 /disk/nixos.qcow2
+        '';
+      };
+
+      # skopeo needs a trust policy. Many systems have no policy.json.
+      policy = pkgs.writeText "policy.json" (builtins.toJSON {
+        default = [ { type = "insecureAcceptAnything"; } ];
+      });
+
+      # Usage: nix run .#push -- <registry>/<name>:<tag> [skopeo flags]
+      # Example: nix run .#push -- localhost:5000/nixos-dev:latest --dest-tls-verify=false
+      push = pkgs.writeShellApplication {
+        name = "push-container-disk";
+        runtimeInputs = [ pkgs.skopeo ];
+        text = ''
+          if [ "$#" -lt 1 ]; then
+            echo "usage: push <registry>/<name>:<tag> [skopeo flags]" >&2
+            exit 1
+          fi
+          dest="$1"
+          shift
+          skopeo --policy ${policy} copy "$@" "docker-archive:${containerDisk}" "docker://$dest"
+        '';
+      };
+ 
+    in {
+      packages.${system} = {
+        qcow2 = qcow;
+        containerDisk = containerDisk;
+        default = qcow;
+      };
+
+      apps.${system}.push = {
+        type = "app";
+        program = "${push}/bin/push-container-disk";
+      };
       nixosConfigurations.registry = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         modules = [
