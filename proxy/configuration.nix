@@ -49,7 +49,10 @@
     };
   };
   security.sudo.wheelNeedsPassword = false;
-  sops.secrets.wireguard.sopsFile = ../secrets/secrets.yaml;
+  sops.secrets.wireguard = {
+    sopsFile = ../secrets/secrets.yaml;
+    restartUnits = [ "wg-quick-wg0.service" ];
+  };
   environment.systemPackages = with pkgs; [
     wireguard-tools
   ];
