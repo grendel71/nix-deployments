@@ -49,7 +49,12 @@
     };
   };
   security.sudo.wheelNeedsPassword = false;
+  sops.secrets.wireguard.sopsFile = ../secrets/secrets.yaml;
+  environment.systemPackages = with pkgs; [
+    wireguard-tools
+  ];
 
+  networking.wg-quick.interfaces.wg0.configFile = config.sops.secrets.wireguard.path;
   users.users.blau = {
     isNormalUser = true;
     home = "/home/blau";
