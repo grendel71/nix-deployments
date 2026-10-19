@@ -99,5 +99,33 @@
           )
         ];
       };
+      nixosConfigurations.proxy = nixpkgs.lib.nixosSystem {
+        system = "x86_64-linux";
+        modules = [
+          disko.nixosModules.disko
+          sops-nix.nixosModules.sops
+          ./proxy/configuration.nix
+          ./proxy/hardware-configuration.nix
+          ./common/generic.nix
+          ./common/pkgs.nix
+          comin.nixosModules.comin
+          (
+            { ... }:
+            {
+              services.comin = {
+                enable = true;
+                hostname = "proxy";
+                remotes = [
+                  {
+                    name = "origin";
+                    url = "https://github.com/grendel71/nix-deployments.git";
+                    branches.main.name = "main";
+                  }
+                ];
+              };
+            }
+          )
+        ];
+      };
     };
 }
